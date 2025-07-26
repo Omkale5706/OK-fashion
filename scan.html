@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OK Fashion - AI Style Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warm-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --cool-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --dark-gradient: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --text-muted: #a0aec0;
+            --success-color: #48bb78;
+            --warning-color: #ed8936;
+            --error-color: #f56565;
+            --shadow-soft: 0 10px 25px rgba(0,0,0,0.1);
+            --shadow-medium: 0 20px 40px rgba(0,0,0,0.15);
+            --shadow-strong: 0 30px 60px rgba(0,0,0,0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="20" cy="80" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 15px 30px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 25px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            color: white;
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #ffffff, #f0f8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(255,255,255,0.3)); }
+            to { filter: drop-shadow(0 0 30px rgba(255,255,255,0.5)); }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            margin-bottom: 60px;
+        }
+
+        .upload-section, .results-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: var(--shadow-medium);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before, .results-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            border-radius: 25px 25px 0 0;
+        }
+
+        .upload-section:hover, .results-section:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-strong);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 3px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 50px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(255,255,255,0.1), transparent);
+            animation: rotate 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .upload-area:hover::before {
+            opacity: 1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .upload-area:hover {
+            border-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .upload-area.dragover {
+            border-color: #4facfe;
+            background: rgba(79, 172, 254, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.3);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            position: relative;
+            z-index: 2;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.4));
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        .upload-subtext {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 2;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 15px;
+            margin-top: 25px;
+            box-shadow: var(--shadow-medium);
+            transition: all 0.3s ease;
+        }
+
+        .uploaded-image:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-strong);
+        }
+
+        /* Analyze Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 18px 40px;
+            background: var(--secondary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            margin-top: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .analyze-btn:hover::before {
+            left: 100%;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-medium);
+            background: var(--warm-gradient);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            background: var(--dark-gradient);
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* Results Grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        .suggestion-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .suggestion-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .suggestion-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .suggestion-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-strong);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .suggestion-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-card:hover .suggestion-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .suggestion-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .suggestion-description {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 30px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-state-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .empty-state-text {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .empty-state-subtext {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Back Button */
+        .back-btn {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                gap: 40px;
+            }
+            
+            .header h1 {
+                font-size: 3.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .header h1 {
+                font-size: 2.8rem;
+            }
+
+            .header p {
+                font-size: 1.1rem;
+            }
+
+            .upload-section, .results-section {
+                padding: 30px;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .back-btn {
+                top: 20px;
+                left: 20px;
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .upload-section, .results-section {
+                padding: 25px;
+            }
+
+            .upload-area {
+                padding: 40px 20px;
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .slide-in-left {
+            animation: slideInLeft 0.6s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-in-right {
+            animation: slideInRight 0.6s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Home</a>
+    
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-content">
+                <div class="logo">OK Fashion</div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <!-- <li><a href="#analyzer">Style Analyzer</a></li> -->
+                    <li><a href="index.html#about">About</a></li>
+                    <li><a href="index.html#services">Services</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <header class="header">
+            <h1>OK Fashion</h1>
+            <p>Upload your photo and let our advanced AI create personalized fashion recommendations just for you</p>
+        </header>
+
+        <main class="main-content">
+            <section class="upload-section slide-in-left">
+                <h2 class="section-title">Upload Your Photo</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-subtext">Supports JPG, PNG, WebP (Max 10MB)</div>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                <img id="uploadedImage" class="uploaded-image" style="display: none;">
+                <button class="analyze-btn" id="analyzeBtn" disabled>
+                    ✨ Generate Style Suggestions
+                </button>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Analyzing your style... Our AI is working its magic! ✨</p>
+                </div>
+            </section>
+
+            <section class="results-section slide-in-right">
+                <h2 class="section-title">Style Suggestions</h2>
+                <div id="results">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👗</div>
+                        <div class="empty-state-text">No suggestions yet</div>
+                        <div class="empty-state-subtext">Upload a photo to get personalized styling recommendations</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        class OKFashionAnalyzer {
+            constructor() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.imageInput = document.getElementById('imageInput');
+                this.uploadedImage = document.getElementById('uploadedImage');
+                this.analyzeBtn = document.getElementById('analyzeBtn');
+                this.loading = document.getElementById('loading');
+                this.results = document.getElementById('results');
+                this.currentImage = null;
+
+                this.initializeEventListeners();
+                this.addPageAnimations();
+            }
+
+            initializeEventListeners() {
+                // Upload area click
+                this.uploadArea.addEventListener('click', () => {
+                    this.imageInput.click();
+                });
+
+                // File input change
+                this.imageInput.addEventListener('change', (e) => {
+                    this.handleFileSelect(e.target.files[0]);
+                });
+
+                // Drag and drop
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        this.handleFileSelect(file);
+                    }
+                });
+
+                // Analyze button
+                this.analyzeBtn.addEventListener('click', () => {
+                    this.generateSuggestions();
+                });
+            }
+
+            addPageAnimations() {
+                // Add staggered animations to elements
+                setTimeout(() => {
+                    document.querySelector('.navbar').style.animation = 'fadeIn 0.8s ease-out';
+                }, 200);
+                
+                setTimeout(() => {
+                    document.querySelector('.header').style.animation = 'fadeIn 0.8s ease-out';
+                }, 400);
+            }
+
+            handleFileSelect(file) {
+                if (!file || !file.type.startsWith('image/')) {
+                    this.showNotification('Please select a valid image file.', 'error');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                    this.showNotification('File size must be less than 10MB.', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.currentImage = e.target.result;
+                    this.uploadedImage.src = this.currentImage;
+                    this.uploadedImage.style.display = 'block';
+                    this.analyzeBtn.disabled = false;
+                    
+                    // Hide upload area content and show image with animation
+                    this.uploadArea.style.display = 'none';
+                    this.uploadedImage.classList.add('fade-in');
+                    
+                    this.showNotification('Image uploaded successfully!', 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async generateSuggestions() {
+                if (!this.currentImage) return;
+
+                // Show loading state with enhanced animation
+                this.analyzeBtn.disabled = true;
+                this.loading.style.display = 'block';
+                this.results.innerHTML = '';
+                this.loading.classList.add('fade-in');
+
+                // Simulate AI processing time with progress updates
+                await this.simulateAIProcessing();
+
+                // Hide loading state
+                this.loading.style.display = 'none';
+                this.analyzeBtn.disabled = false;
+
+                // Generate and display suggestions
+                const suggestions = this.getEnhancedSuggestions();
+                this.displaySuggestions(suggestions);
+                
+                this.showNotification('Style analysis complete!', 'success');
+            }
+
+            async simulateAIProcessing() {
+                const steps = [
+                    'Analyzing facial features...',
+                    'Detecting body proportions...',
+                    'Identifying skin tone...',
+                    'Processing style preferences...',
+                    'Generating recommendations...'
+                ];
+
+                for (let i = 0; i < steps.length; i++) {
+                    document.querySelector('.loading-text').textContent = steps[i];
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
+            }
+
+            getEnhancedSuggestions() {
+                const suggestions = [
+                    {
+                        icon: '👔',
+                        title: 'Professional Elegance',
+                        description: 'A tailored navy blazer with crisp white shirt creates a sophisticated silhouette. The structured shoulders complement your frame while the classic color palette exudes confidence and professionalism.'
+                    },
+                    {
+                        icon: '👗',
+                        title: 'Casual Sophistication',
+                        description: 'A flowing midi dress in warm earth tones would beautifully enhance your natural glow. The relaxed fit offers comfort while maintaining an effortlessly polished appearance perfect for any occasion.'
+                    },
+                    {
+                        icon: '🧥',
+                        title: 'Seasonal Statement',
+                        description: 'A luxurious cashmere sweater in rich jewel tones paired with perfectly fitted dark jeans. This combination balances comfort with style, ideal for your body type and the current season.'
+                    },
+                    {
+                        icon: '👠',
+                        title: 'Accessory Harmony',
+                        description: 'Delicate gold jewelry and a structured leather handbag would frame your features beautifully. These carefully chosen accessories add sophistication without overwhelming your natural elegance.'
+                    },
+                    {
+                        icon: '🎨',
+                        title: 'Perfect Color Palette',
+                        description: 'Based on your unique skin undertones, deep jewel tones like emerald, sapphire, and burgundy will make you radiate confidence. These colors enhance your natural beauty and create stunning visual impact.'
+                    },
+                    {
+                        icon: '✨',
+                        title: 'Signature Style',
+                        description: 'For special occasions, consider a classic A-line silhouette in luxurious fabrics. This timeless cut flatters your figure while the rich textures add depth and sophistication to your overall look.'
+                    }
+                ];
+
+                // Return 4 random suggestions for variety
+                return suggestions.sort(() => 0.5 - Math.random()).slice(0, 4);
+            }
+
+            displaySuggestions(suggestions) {
+                const resultsHTML = `
+                    <div class="results-grid fade-in">
+                        ${suggestions.map((suggestion, index) => `
+                            <div class="suggestion-card" style="animation-delay: ${index * 0.1}s">
+                                <div class="suggestion-icon">${suggestion.icon}</div>
+                                <div class="suggestion-title">${suggestion.title}</div>
+                                <div class="suggestion-description">${suggestion.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                this.results.innerHTML = resultsHTML;
+            }
+
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 30px;
+                    right: 30px;
+                    background: ${type === 'success' ? 'var(--success-color)' : type === 'error' ? 'var(--error-color)' : 'var(--primary-gradient)'};
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 50px;
+                    font-weight: 600;
+                    box-shadow: var(--shadow-medium);
+                    z-index: 10000;
+                    animation: slideInRight 0.3s ease-out;
+                    backdrop-filter: blur(10px);
+                `;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.3s ease-out forwards';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            // Method for future AI integration
+            async callAIService(imageData) {
+                // This is where you would integrate with your AI service
+                /*
+                try {
+                    const response = await fetch('/api/analyze-style', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image: imageData,
+                            preferences: this.getUserPreferences()
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    return data.suggestions;
+                } catch (error) {
+                    console.error('AI service error:', error);
+                    this.showNotification('Analysis failed. Please try again.', 'error');
+                    throw error;
+                }
+                */
+            }
+
+            getUserPreferences() {
+                return {
+                    style: 'modern',
+                    budget: 'medium',
+                    occasion: 'everyday',
+                    bodyType: 'auto-detect',
+                    colorPreferences: []
+                };
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new OKFashionAnalyzer();
+        });
+
+        // Add fadeOut animation for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(100px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
